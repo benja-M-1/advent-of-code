@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 
+	"adventofcode/pkg/matrix"
+
 	"golang.org/x/exp/maps"
 )
 
@@ -47,9 +49,9 @@ func (p Position) Equal(position Position) bool {
 func One(input string) int {
 	input = strings.Trim(input, "\n")
 
-	matrix, current := parse(input)
+	grid, current := parse(input)
 
-	m := Walk(matrix, current, Position{}, Matrix{})
+	m := Walk(grid, current, Position{}, matrix.Matrix{})
 
 	steps := 0
 	for _, row := range m {
@@ -59,16 +61,13 @@ func One(input string) int {
 	return steps / 2
 }
 
-func parse(input string) (Matrix, Position) {
-	matrix := Matrix{}
+func parse(input string) (matrix.Matrix, Position) {
+	grid := matrix.Matrix{}
 	start := Position{}
 
 	for y, row := range strings.Split(input, "\n") {
-		if _, ok := matrix[y]; !ok {
-			matrix[y] = map[int]string{}
-		}
 		for x, tile := range strings.Split(row, "") {
-			matrix[y][x] = tile
+			grid.Set(x, y, tile)
 			if tile == Start {
 				start.Y = y
 				start.X = x
@@ -76,10 +75,10 @@ func parse(input string) (Matrix, Position) {
 		}
 	}
 
-	return matrix, start
+	return grid, start
 }
 
-func Walk(matrix Matrix, current Position, prev Position, loop Matrix) Matrix {
+func Walk(matrix matrix.Matrix, current Position, prev Position, loop matrix.Matrix) matrix.Matrix {
 	var next Position
 
 	tile := matrix.Get(current.X, current.Y)
@@ -168,9 +167,9 @@ func Walk(matrix Matrix, current Position, prev Position, loop Matrix) Matrix {
 func TwoSecond(input string) int {
 	input = strings.Trim(input, "\n")
 
-	matrix, current := parse(input)
+	grid, current := parse(input)
 
-	loop := Walk(matrix, current, Position{}, Matrix{})
+	loop := Walk(grid, current, Position{}, matrix.Matrix{})
 
 	var (
 		m        float64
@@ -178,15 +177,15 @@ func TwoSecond(input string) int {
 		included []Position
 	)
 
-	ykeys := maps.Keys(matrix)
+	ykeys := maps.Keys(grid)
 	slices.Sort(ykeys)
 
 	for _, y := range ykeys {
-		xkeys := maps.Keys(matrix[y])
+		xkeys := maps.Keys(grid[y])
 		slices.Sort(xkeys)
 
 		for _, x := range xkeys {
-			tile := matrix.Get(x, y)
+			tile := grid.Get(x, y)
 			if loop.Has(x, y) {
 				if tile == "|" {
 					m++
@@ -208,38 +207,38 @@ func TwoSecond(input string) int {
 func Two(input string) int {
 	input = strings.Trim(input, "\n")
 
-	matrix, current := parse(input)
+	grid, current := parse(input)
 
-	loop := Walk(matrix, current, Position{}, Matrix{})
+	loop := Walk(grid, current, Position{}, matrix.Matrix{})
 
 	var (
 		n        int
 		included []Position
 	)
 
-	for y := range matrix {
-		for x := range matrix[y] {
+	for y := range grid {
+		for x := range grid[y] {
 			if !loop.Has(x, y) {
-				matrix.Set(x, y, ".")
+				grid.Set(x, y, ".")
 			}
 		}
 	}
 
-	ykeys := maps.Keys(matrix)
+	ykeys := maps.Keys(grid)
 	slices.Sort(ykeys)
 
 	for _, y := range ykeys {
-		xkeys := maps.Keys(matrix[y])
+		xkeys := maps.Keys(grid[y])
 		slices.Sort(xkeys)
 
 		for _, x := range xkeys {
-			if matrix.Get(x, y) != Ground {
+			if grid.Get(x, y) != Ground {
 				continue
 			}
 
 			count := 0
 			for _, xx := range xkeys[0:x] {
-				v := matrix.Get(xx, y)
+				v := grid.Get(xx, y)
 				if slices.Contains([]string{"|", "J", "L"}, v) {
 					count++
 				}
@@ -253,43 +252,4 @@ func Two(input string) int {
 	}
 
 	return n
-}
-
-type Matrix map[int]Row
-type Row map[int]string
-
-func (m Matrix) Has(x, y int) bool {
-	_, ok := m[y][x]
-
-	return ok
-}
-
-func (m Matrix) Get(x, y int) string {
-	return m[y][x]
-}
-
-func (m Matrix) Set(x, y int, tile string) {
-	if _, ok := m[y]; !ok {
-		m[y] = Row{}
-	}
-	m[y][x] = tile
-}
-
-func (m Matrix) String() string {
-	var s string
-
-	ykeys := maps.Keys(m)
-	slices.Sort(ykeys)
-
-	for _, y := range ykeys {
-		xkeys := maps.Keys(m[y])
-		slices.Sort(xkeys)
-
-		for _, x := range xkeys {
-			s += m[y][x]
-		}
-		s += "\n"
-	}
-
-	return s
 }
