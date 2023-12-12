@@ -27,3 +27,21 @@ func Product[S ~[]E, E ~int](x S) E {
 	}
 	return p
 }
+
+func Sum[S ~[]E, E ~int](x S) E {
+	var p E = 0
+	for _, v := range x {
+		p += v
+	}
+	return p
+}
+
+func Find[S ~[]E, E any](s S, f func(E) bool) S {
+	var r S
+	for _, x := range s {
+		if f(x) {
+			r = append(r, x)
+		}
+	}
+	return r
+}
