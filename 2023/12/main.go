@@ -37,6 +37,16 @@ func One(input string) int {
 	return sum
 }
 
+// Courtesy of Dadid Gageot!
+// I couldn't figure out how to build the walk correclty.
+// My first attempt was to recursively replace the / by a # and check if the result was valid and do the same with a ".".
+// It worked well for Part 1. And then in Part 2, the compute time was too long.
+// I tried to mathematically guess how many possibilities existed in the unfolded string:
+// - x the number of solutions for the initial string
+// - y the number of solutions for the initial string prefixed with a ?
+// Then the result would be x * y^4. But it does not work for the example #7.
+// I could not figure out a avoid unnecessary calls.
+// eg with `???.### 1,1,3` `##?.###` is already invalid and thus there is no need to try that value
 func walk(conditions string, criteria []int, ci, cv int, memo *memoize.Memoizer) int {
 	if len(conditions) == 0 {
 		if ci == len(criteria)-1 && cv == criteria[ci] {

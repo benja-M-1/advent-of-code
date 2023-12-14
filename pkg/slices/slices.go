@@ -45,3 +45,15 @@ func Find[S ~[]E, E any](s S, f func(E) bool) S {
 	}
 	return r
 }
+
+func Diff[S ~[]E, E comparable](s1 S, s2 S) S {
+	var d S
+	for i := range s1 {
+		if s1[i] == s2[i] {
+			continue
+		}
+		d = append(d, s1[i])
+	}
+
+	return d
+}
