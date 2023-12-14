@@ -34,21 +34,23 @@ func One(input string) int {
 	return sum
 }
 
-func lineOfReflection(s [][]string, prev int) int {
-	for i := 0; i < len(s); i++ {
-		if i+1 >= len(s) || !slices.Equal(s[i], s[i+1]) {
-			continue
+func lineOfReflection(s []string, prev int) int {
+	for i := 0; i < len(s)-1; i++ {
+		l, r := s[0:i+1], s[i+1:]
+		if len(l) < len(r) {
+			r = r[:len(l)]
+		} else if i+1-len(r) >= 0 {
+			l = s[i+1-len(r) : i+1]
 		}
 
-		similar := true
-		for a, b := i-1, i+2; a >= 0 && b < len(s); a, b = a-1, b+1 {
-			if !slices.Equal(s[a], s[b]) {
-				similar = false
-				break
-			}
-		}
+		// Make some copies to ensure no side effects on the original slice
+		right := make([]string, len(r))
+		left := make([]string, len(l))
+		copy(right, r)
+		copy(left, l)
+		slices.Reverse(left)
 
-		if similar && prev != i+1 {
+		if slices.Equal(left, right) && prev != i+1 {
 			return i + 1
 		}
 	}
@@ -56,26 +58,24 @@ func lineOfReflection(s [][]string, prev int) int {
 	return 0
 }
 
-func parse(input string) []map[string][][]string {
+func parse(input string) []map[string][]string {
 	input = strings.Trim(input, "\n")
-	patterns := []map[string][][]string{}
+	patterns := []map[string][]string{}
 
 	for _, pattern := range strings.Split(input, "\n\n") {
-		cols, rows := [][]string{}, [][]string{}
+		cols, rows := []string{}, []string{}
 		for _, row := range strings.Split(pattern, "\n") {
+			rows = append(rows, row)
 
-			cells := strings.Split(row, "")
-			rows = append(rows, cells)
-
-			for x, cell := range cells {
-				if x > len(cols)-1 {
-					cols = append(cols, []string{})
+			for x, cell := range row {
+				if len(cols)-1 < x {
+					cols = append(cols, "")
 				}
-				cols[x] = append(cols[x], cell)
+				cols[x] += string(cell)
 			}
 		}
 
-		patterns = append(patterns, map[string][][]string{"cols": cols, "rows": rows})
+		patterns = append(patterns, map[string][]string{"cols": cols, "rows": rows})
 	}
 
 	return patterns
@@ -97,14 +97,14 @@ func Two(input string) int {
 	return sum
 }
 
-func fix(rows [][]string, l int) int {
+func fix(rows []string, l int) int {
 	for r := range rows {
 		for c := range rows[r] {
-			old := rows[r][c]
-			if rows[r][c] == "." {
-				rows[r][c] = "#"
+			old := string(rows[r][c])
+			if old == "." {
+				rows[r] = rows[r][:c] + "#" + rows[r][c+1:]
 			} else {
-				rows[r][c] = "."
+				rows[r] = rows[r][:c] + "." + rows[r][c+1:]
 			}
 
 			l2 := lineOfReflection(rows, l)
@@ -113,7 +113,7 @@ func fix(rows [][]string, l int) int {
 			}
 
 			// Put back the value
-			rows[r][c] = old
+			rows[r] = rows[r][:c] + old + rows[r][c+1:]
 		}
 	}
 
