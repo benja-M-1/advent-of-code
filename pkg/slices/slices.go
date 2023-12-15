@@ -57,3 +57,7 @@ func Diff[S ~[]E, E comparable](s1 S, s2 S) S {
 
 	return d
 }
+
+func CountIf[S ~[]E, E comparable](s S, cmp func(E) bool) int {
+	return len(Find(s, cmp))
+}
