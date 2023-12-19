@@ -28,5 +28,5 @@ func TestPuzzleOne(t *testing.T) {
 }
 
 func TestPuzzleTwo(t *testing.T) {
-	assert.Equal(t, 0, Two(input))
+	assert.Equal(t, 952408144115, Two(input))
 }

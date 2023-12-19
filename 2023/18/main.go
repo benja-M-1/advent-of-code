@@ -3,11 +3,9 @@ package main
 import (
 	"embed"
 	"fmt"
-	"slices"
+	"math"
 	"strconv"
 	"strings"
-
-	"golang.org/x/exp/maps"
 )
 
 //go:embed *.txt
@@ -22,173 +20,113 @@ func main() {
 	fmt.Printf("puzzle 2: %v\n", r2)
 }
 
-type Node struct {
-	X      int
-	Y      int
-	Edge   bool
-	Inside bool
-	Value  string
+type point struct {
+	X float64
+	Y float64
+}
+
+type instruction struct {
+	Dir    string
+	Length float64
 }
 
 func One(input string) int {
 	input = strings.Trim(input, "\n")
 
-	topLeft, bottomRight := []int{0, 0}, []int{0, 0}
-	grid := map[int]map[int]*Node{0: {0: {X: 0, Y: 0, Edge: true, Value: "#"}}}
-	current := []int{0, 0}
+	instructions := []instruction{}
 	for _, line := range strings.Split(input, "\n") {
+		i := instruction{}
 		parts := strings.Fields(line)
-		dir := parts[0]
-		length, _ := strconv.Atoi(parts[1])
+		i.Dir = parts[0]
+		i.Length, _ = strconv.ParseFloat(parts[1], 64)
 
-		for length != 0 {
-			switch dir {
-			case "R":
-				current = []int{current[0] + 1, current[1]}
-			case "L":
-				current = []int{current[0] - 1, current[1]}
-			case "U":
-				current = []int{current[0], current[1] - 1}
-			case "D":
-				current = []int{current[0], current[1] + 1}
-			}
-
-			n := &Node{
-				X:     current[0],
-				Y:     current[1],
-				Edge:  true,
-				Value: "#",
-			}
-
-			if _, ok := grid[current[1]]; !ok {
-				grid[current[1]] = map[int]*Node{
-					current[0]: n,
-				}
-			} else {
-				grid[current[1]][current[0]] = n
-			}
-
-			if topLeft[0] > current[0] {
-				topLeft[0] = current[0]
-			}
-
-			if topLeft[1] > current[1] {
-				topLeft[1] = current[1]
-			}
-
-			if bottomRight[0] < current[0] {
-				bottomRight[0] = current[0]
-			}
-
-			if bottomRight[1] < current[1] {
-				bottomRight[1] = current[1]
-			}
-
-			length--
-		}
+		instructions = append(instructions, i)
 	}
 
-	surface := 0
-	for y := topLeft[1]; y <= bottomRight[1]; y++ {
-		k := maps.Keys(grid[y])
-		slices.SortFunc(k, func(i, j int) int {
-			if i < j {
-				return -1
-			} else if i > j {
-				return 1
-			} else {
-				return 0
-			}
-		})
+	permtr := perimeter(instructions)
+	points := dig(instructions)
 
-		ledge, redge := k[0], k[len(k)-1]
-
-		for x := topLeft[0]; x < ledge; x++ {
-			grid[y][x] = &Node{X: x, Y: y, Inside: false, Value: "."}
-		}
-
-		inside := false
-
-		for x := ledge; x <= redge; x++ {
-			cur, cok := grid[y][x]
-			prev, pok := grid[y][x-1]
-			up, uok := grid[y-1][x]
-
-			if !cok {
-				cur = &Node{X: x, Y: x, Value: "."}
-				grid[y][x] = cur
-			}
-
-			if cok && cur.Edge {
-				if uok && up.Inside && pok && prev.Inside {
-					inside = true
-				} else if uok && up.Edge && pok && prev.Inside {
-					inside = true
-				} else if pok && uok && !up.Inside && !up.Edge {
-					inside = prev.Inside
-				}
-
-				cur.Inside = inside
-
-				surface++
-				continue
-			}
-
-			if pok && prev.Edge && !prev.Inside {
-				if uok && up.Edge && !up.Inside {
-					inside = true
-				} else if uok && !up.Edge && up.Inside {
-					inside = true
-				}
-			} else if pok && prev.Edge && prev.Inside {
-				if uok && up.Edge && up.Inside {
-					inside = false
-				} else if uok && !up.Edge {
-					inside = up.Inside
-				}
-			}
-
-			if inside {
-				cur.Inside = true
-				if !cur.Edge {
-					cur.Value = "-"
-				}
-
-				surface++
-			}
-		}
-
-		for x := redge + 1; x <= bottomRight[0]; x++ {
-			grid[y][x] = &Node{X: x, Y: y, Inside: false, Value: "."}
-		}
-
-	}
-
-	ky := maps.Keys(grid)
-	slices.Sort(ky)
-	for _, y := range ky {
-		fmt.Print(y, "\t")
-		kx := maps.Keys(grid[y])
-		slices.Sort(kx)
-		for _, x := range kx {
-			fmt.Print(grid[y][x].Value)
-		}
-		fmt.Println()
-	}
-
-	return surface
+	return int(area(points) + permtr/2 + 1)
 }
 
-type Corner struct {
-	X int64
-	Y int64
+func perimeter(instructions []instruction) float64 {
+	permtr := float64(0)
+	for i := range instructions {
+		permtr += instructions[i].Length
+	}
+
+	return permtr
 }
 
-type Rectangle struct {
-	TopLeft     *Corner
-	BottomRight *Corner
+func dig(instructions []instruction) []point {
+	points := []point{{X: 0, Y: 0}}
+	for i := range instructions {
+		current := points[len(points)-1]
+
+		switch instructions[i].Dir {
+		case "R", "0":
+			current = point{current.X + instructions[i].Length, current.Y}
+		case "L", "2":
+			current = point{current.X - instructions[i].Length, current.Y}
+		case "U", "3":
+			current = point{current.X, current.Y - instructions[i].Length}
+		case "D", "1":
+			current = point{current.X, current.Y + instructions[i].Length}
+		}
+
+		points = append(points, current)
+	}
+
+	return points
+}
+
+// area calculates the area of a polygon using the shoelace formula.
+// https://en.wikipedia.org/wiki/Shoelace_formula#Other_formulas
+// A = 1/2 * sum(x[i] * (y[i+1] - y[i-1]))
+func area(points []point) float64 {
+	a := float64(0)
+	for current := range points {
+		next, prev := current+1, current-1
+		if current == len(points)-1 {
+			next = 1
+		}
+		if current == 0 {
+			prev = len(points) - 1
+		}
+
+		a += points[current].X * (points[next].Y - points[prev].Y) / 2
+	}
+
+	return math.Abs(a)
 }
 
 func Two(input string) int {
-	return 0
+	input = strings.Trim(input, "\n")
+
+	instructions := []instruction{}
+
+	// Each line looks like this:
+	// U 2 (#7a21e3)
+	for _, line := range strings.Split(input, "\n") {
+		i := instruction{}
+		// parts[0] is the direction
+		// parts[1] is the length
+		// parts[2] is the hex color
+		parts := strings.Fields(line)
+
+		// the 5th first chars of hex color contains the length
+		// the remainder contains the direction
+		// (#7a21e3) -> 7a21e 3
+		i.Dir = parts[2][7:8] // (#7a21e3) -> 3
+		hex := parts[2][2:7]  // (#7a21e3) -> 7a21e
+		length, _ := strconv.ParseInt(hex, 16, 64)
+		i.Length = float64(length)
+
+		instructions = append(instructions, i)
+	}
+
+	permtr := perimeter(instructions)
+	points := dig(instructions)
+
+	return int(area(points) + permtr/2 + 1)
 }

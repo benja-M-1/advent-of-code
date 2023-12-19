@@ -28,7 +28,7 @@ func Product[S ~[]E, E ~int](x S) E {
 	return p
 }
 
-func Sum[S ~[]E, E ~int](x S) E {
+func Sum[S ~[]E, E ~int | ~float64](x S) E {
 	var p E = 0
 	for _, v := range x {
 		p += v
