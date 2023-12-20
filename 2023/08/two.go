@@ -2,6 +2,8 @@ package main
 
 import (
 	"strings"
+
+	aocmath "adventofcode/pkg/math"
 )
 
 func PuzzleTwo(input string) int {
@@ -54,25 +56,8 @@ func PuzzleTwo(input string) int {
 	}
 
 	if len(pathSteps) == 2 {
-		return lcm(pathSteps[0], pathSteps[1])
+		return aocmath.LeastCommonMultiplied(pathSteps[0], pathSteps[1])
 	}
 
-	return lcm(pathSteps[0], pathSteps[1], pathSteps[2:]...)
-}
-
-func gcd(a, b int) int {
-	for b != 0 {
-		a, b = b, a%b
-	}
-
-	return a
-}
-
-func lcm(a, b int, n ...int) int {
-	result := a * b / gcd(a, b)
-	for i := 0; i < len(n); i++ {
-		result = lcm(result, n[i])
-	}
-
-	return result
+	return aocmath.LeastCommonMultiplied(pathSteps[0], pathSteps[1], pathSteps[2:]...)
 }
